@@ -56,7 +56,7 @@ body {
     padding: 20px;
 
     background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
-                url('/hero_section.jpeg') center/cover no-repeat;
+                url('./image/hero_section.jpeg') center/cover no-repeat;
 
     color: white;
 }
@@ -228,5 +228,40 @@ body {
     .cards {
         flex-direction: column;
         align-items: center;
+    }
+}
+
+/* Hamburger hidden by default */
+.menu-toggle {
+    display: none;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+/* Responsive Navbar */
+@media (max-width: 768px) {
+
+    .menu-toggle {
+        display: block;
+    }
+
+    .nav-links {
+        position: absolute;
+        top: 80px;
+        left: 0;
+        width: 100%;
+        background: rgba(0,0,0,0.9);
+        flex-direction: column;
+        align-items: center;
+        display: none;
+        padding: 20px 0;
+    }
+
+    .nav-links.active {
+        display: flex;
+    }
+
+    .nav-links li {
+        margin: 10px 0;
     }
 }
