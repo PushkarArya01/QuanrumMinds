@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Triage Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --surface: #131929;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --text: #e8edf5;
+    --muted: #6b7fa3;
+    --accent: #3b82f6;
+    --normal: #22c55e;
+    --normal-bg: rgba(34,197,94,0.08);
+    --urgent: #f59e0b;
+    --urgent-bg: rgba(245,158,11,0.08);
+    --critical: #ef4444;
+    --critical-bg: rgba(239,68,68,0.08);
+    --font: 'DM Sans', sans-serif;
+    --mono: 'Space Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-weight: 700; font-size: 17px; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .header-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+  .stat-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-family: var(--mono);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── LAYOUT ── */
+  .main { display: flex; gap: 0; min-height: calc(100vh - 70px); }
+
+  /* ── SIDEBAR / FORM ── */
+  .sidebar {
+    width: 360px;
+    min-width: 300px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar h2 { font-size: 15px; font-weight: 600; margin-bottom: 20px; color: var(--text); letter-spacing: -0.2px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: var(--font);
+    font-size: 14px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--accent);
+  }
+  .form-group textarea { resize: none; height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(59,130,246,0.05); }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 28px; margin-bottom: 6px; }
+  .upload-label { font-size: 13px; color: var(--muted); }
+  .upload-label span { color: var(--accent); }
+  #file-name { font-size: 12px; color: var(--normal); margin-top: 6px; font-family: var(--mono); }
+
+  .btn-submit {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: -0.2px;
+  }
+  .btn-submit:hover { opacity: 0.9; }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .disclaimer { font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px; line-height: 1.5; }
+
+  /* ── CONTENT ── */
+  .content { flex: 1; padding: 24px; overflow-y: auto; min-width: 0; }
+  .content-header { margin-bottom: 20px; }
+  .content-header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .content-header p { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+  /* ── PRIORITY LANES ── */
+  .lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 900px) { .lanes { grid-template-columns: 1fr; } }
+
+  .lane {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .lane-header {
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .lane-icon { font-size: 16px; }
+  .lane.normal .lane-header { color: var(--normal); background: var(--normal-bg); }
+  .lane.urgent .lane-header { color: var(--urgent); background: var(--urgent-bg); }
+  .lane.critical .lane-header { color: var(--critical); background: var(--critical-bg); }
+  .lane-count {
+    margin-left: auto;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .lane-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 80px; }
+
+  /* ── PATIENT CARD ── */
+  .patient-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    animation: slideIn 0.35s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .patient-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
+  }
+  .normal .patient-card::before { background: var(--normal); }
+  .urgent .patient-card::before { background: var(--urgent); }
+  .critical .patient-card::before { background: var(--critical); }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .card-name { font-weight: 600; font-size: 14px; }
+  .card-time { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .card-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .card-priority {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--mono);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .normal .card-priority { color: var(--normal); }
+  .urgent .card-priority { color: var(--urgent); }
+  .critical .card-priority { color: var(--critical); }
+  .ai-summary { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 6px; }
+
+  /* empty state */
+  .empty-state { text-align: center; padding: 30px 16px; color: var(--muted); font-size: 13px; }
+  .empty-icon { font-size: 28px; margin-bottom: 6px; opacity: 0.4; }
+
+  /* ── LOADING ── */
+  .loading-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--muted);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    background: var(--critical-bg);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px;
+    animation: fadeIn 0.3s ease;
+    display: none;
+  }
+  .alert-banner.show { display: flex; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  /* ── AI ANALYSIS BOX ── */
+  .analysis-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .analysis-box.show { display: block; animation: fadeIn 0.4s ease; }
+  .analysis-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--accent); font-family: var(--mono); display: flex; align-items: center; gap: 6px; }
+  .analysis-content { font-size: 13px; color: var(--muted); line-height: 1.7; white-space: pre-wrap; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .main { flex-direction: column; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+    .header-stats { display: none; }
+  }
+  @media (max-width: 480px) {
+    .content { padding: 16px; }
+    .sidebar { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🏥</div>
+    <div>
+      <div class="logo-text">AI Triage</div>
+      <div class="logo-sub">Smart Patient Prioritization</div>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-pill"><span class="stat-dot" style="background:var(--normal)"></span><span id="cnt-normal">0</span> Normal</div>
+    <div class="stat-pill"><span class="stat-dot" style="background:var(--urgent)"></span><span id="cnt-urgent">0</span> Urgent</div>
+    <div class="stat-pill"><span class="stat-dot" style="background:var(--critical)"></span><span id="cnt-critical">0</span> Critical</div>
+  </div>
+</header>
+
+<div class="main">
+  <!-- SIDEBAR FORM -->
+  <aside class="sidebar">
+    <h2>📋 Patient Information</h2>
+
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="f-name" placeholder="e.g. Rahul Sharma" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="f-age" placeholder="e.g. 45" min="0" max="120" />
+      </div>
+      <div class="form-group">
+        <label>Gender</label>
+        <select id="f-gender">
+          <option value="">Select</option>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Symptoms</label>
+      <textarea id="f-symptoms" placeholder="Describe symptoms in detail…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Heart Rate (bpm)</label>
+        <input type="number" id="f-hr" placeholder="e.g. 90" />
+      </div>
+      <div class="form-group">
+        <label>Blood Pressure</label>
+        <input type="text" id="f-bp" placeholder="e.g. 130/85" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Oxygen Level (%)</label>
+        <input type="number" id="f-o2" placeholder="e.g. 97" min="50" max="100" />
+      </div>
+      <div class="form-group">
+        <label>Temperature (°C)</label>
+        <input type="number" id="f-temp" placeholder="e.g. 37.5" step="0.1" />
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:4px">
+      <label>Upload Report (PDF / Image)</label>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="f-file" accept=".pdf,.jpg,.jpeg,.png" />
+        <div class="upload-icon">📄</div>
+        <div class="upload-label">Drag & drop or <span>browse file</span></div>
+        <div id="file-name"></div>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="btn-analyze" onclick="analyzePatient()">🔍 Analyze with AI</button>
+    <div class="disclaimer">AI analysis is for triage assistance only. Always consult a qualified physician.</div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+    <div class="content-header">
+      <h1>Smart Patient Prioritization</h1>
+      <p>Critical patients are fast-tracked for immediate attention.</p>
+    </div>
+
+    <!-- critical alert banner -->
+    <div class="alert-banner" id="alert-banner">
+      🚨 <strong>CRITICAL PATIENT ALERT</strong> — Immediate medical attention required!
+    </div>
+
+    <!-- AI raw analysis -->
+    <div class="analysis-box" id="analysis-box">
+      <h3>🤖 AI Full Analysis</h3>
+      <div class="analysis-content" id="analysis-content"></div>
+    </div>
+
+    <!-- Priority Lanes -->
+    <div class="lanes">
+      <div class="lane normal">
+        <div class="lane-header">
+          <span class="lane-icon">✅</span> Normal
+          <span class="lane-count" id="lc-normal">0</span>
+        </div>
+        <div class="lane-body" id="lane-normal">
+          <div class="empty-state"><div class="empty-icon">👤</div>No patients yet</div>
+        </div>
+      </div>
+      <div class="lane urgent">
+        <div class="lane-header">
+          <span class="lane-icon">⚠️</span> Urgent
+          <span class="lane-count" id="lc-urgent">0</span>
+        </div>
+        <div class="lane-body" id="lane-urgent">
+          <div class="empty-state"><div class="empty-icon">👤</div>No patients yet</div>
+        </div>
+      </div>
+      <div class="lane critical">
+        <div class="lane-header">
+          <span class="lane-icon">🚨</span> Critical
+          <span class="lane-count" id="lc-critical">0</span>
+        </div>
+        <div class="lane-body" id="lane-critical">
+          <div class="empty-state"><div class="empty-icon">👤</div>No patients yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const counts = { normal: 0, urgent: 0, critical: 0 };
+
+// File picker label
+document.getElementById('f-file').addEventListener('change', function() {
+  const f = this.files[0];
+  document.getElementById('file-name').textContent = f ? '✓ ' + f.name : '';
+});
+
+// Drag events
+const uz = document.getElementById('upload-zone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('drag'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('drag'));
+uz.addEventListener('drop', e => {
+  e.preventDefault(); uz.classList.remove('drag');
+  const dt = e.dataTransfer;
+  if (dt.files.length) {
+    document.getElementById('f-file').files = dt.files;
+    document.getElementById('file-name').textContent = '✓ ' + dt.files[0].name;
+  }
+});
+
+function getVal(id) { return document.getElementById(id).value.trim(); }
+
+async function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+async function analyzePatient() {
+  const name     = getVal('f-name');
+  const age      = getVal('f-age');
+  const gender   = getVal('f-gender');
+  const symptoms = getVal('f-symptoms');
+  const hr       = getVal('f-hr');
+  const bp       = getVal('f-bp');
+  const o2       = getVal('f-o2');
+  const temp     = getVal('f-temp');
+  const fileInput = document.getElementById('f-file');
+  const file = fileInput.files[0];
+
+  if (!name) { alert('Please enter patient name.'); return; }
+  if (!symptoms && !file) { alert('Please enter symptoms or upload a report.'); return; }
+
+  const btn = document.getElementById('btn-analyze');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing…';
+
+  // Show loading card
+  const loadId = 'load-' + Date.now();
+  addLoading(loadId);
+
+  try {
+    // Build messages
+    let userContent = [];
+
+    // If file uploaded
+    if (file) {
+      const b64 = await fileToBase64(file);
+      const isImage = file.type.startsWith('image/');
+      if (isImage) {
+        userContent.push({ type: 'image', source: { type: 'base64', media_type: file.type, data: b64 } });
+      } else if (file.type === 'application/pdf') {
+        userContent.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } });
+      }
+    }
+
+    const vitalsText = [
+      name && `Patient: ${name}`,
+      age && `Age: ${age}`,
+      gender && `Gender: ${gender}`,
+      symptoms && `Symptoms: ${symptoms}`,
+      hr && `Heart Rate: ${hr} bpm`,
+      bp && `Blood Pressure: ${bp} mmHg`,
+      o2 && `Oxygen Level: ${o2}%`,
+      temp && `Temperature: ${temp}°C`,
+    ].filter(Boolean).join('\n');
+
+    userContent.push({
+      type: 'text',
+      text: `You are an expert medical triage AI. Analyze the following patient data and any uploaded report/image.\n\n${vitalsText}\n\nRespond ONLY with a valid JSON object (no markdown, no extra text) in this format:\n{\n  "priority": "Normal" | "Urgent" | "Critical",\n  "confidence": 0-100,\n  "summary": "1-2 sentence brief for the card",\n  "analysis": "Detailed clinical reasoning paragraph",\n  "vitals_concern": ["list", "of", "concerning", "vitals"],\n  "recommended_action": "Immediate next step"\n}`
+    });
+
+const response = await fetch('http://127.0.0.1:3000/analyze', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    messages: [
+      {
+        role: 'user',
+        content: userContent  // ✅ poora array bhejo, sirf text nahi
+      }
+    ]
+  })
+});
+
+  const data = await response.json();
+
+console.log(data); // debug
+
+// 🔐 SAFE CHECK
+let raw = '';
+
+if (data.choices && data.choices[0]?.message?.content) {
+  raw = data.choices[0].message.content;
+} 
+else if (data.choices && data.choices[0]?.text) {
+  raw = data.choices[0].text;
+} 
+else {
+  alert("❌ API response issue:\n" + JSON.stringify(data, null, 2));
+  return;
+}
+
+const clean = raw.replace(/```json|```/g, '').trim();
+
+let result;
+try {
+  result = JSON.parse(clean);
+} catch (e) {
+  alert("JSON parse error:\n" + clean);
+  return;
+}
+
+    removeLoading(loadId);
+    addPatientCard(result, { name, age, gender, hr, bp, o2, temp });
+    showAnalysis(result);
+
+  } catch (err) {
+    removeLoading(loadId);
+    console.error(err);
+    alert('AI analysis failed. Please check your inputs and try again.\n\n' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Analyze with AI';
+  }
+}
+
+function addLoading(id) {
+  ['normal','urgent','critical'].forEach(l => {
+    const lane = document.getElementById('lane-' + l);
+    const empty = lane.querySelector('.empty-state');
+    if (empty) empty.remove();
+  });
+  const lane = document.getElementById('lane-normal');
+  const div = document.createElement('div');
+  div.className = 'loading-card'; div.id = id;
+  div.innerHTML = '<div class="spinner"></div> AI is analyzing patient…';
+  lane.appendChild(div);
+}
+
+function removeLoading(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function addPatientCard(result, info) {
+  const priority = (result.priority || 'Normal').toLowerCase();
+  const laneEl = document.getElementById('lane-' + priority);
+
+  // Remove empty state
+  const empty = laneEl.querySelector('.empty-state');
+  if (empty) empty.remove();
+
+  counts[priority]++;
+  updateCounts();
+
+  if (priority === 'critical') {
+    document.getElementById('alert-banner').classList.add('show');
+    setTimeout(() => document.getElementById('alert-banner').classList.remove('show'), 6000);
+  }
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const card = document.createElement('div');
+  card.className = 'patient-card';
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-name">${info.name || 'Patient'}</div>
+      <div class="card-time">${timeStr}</div>
+    </div>
+    <div class="card-badges">
+      ${info.hr ? `<span class="badge">❤️ ${info.hr} bpm</span>` : ''}
+      ${info.bp ? `<span class="badge">🩸 ${info.bp}</span>` : ''}
+      ${info.o2 ? `<span class="badge">💧 O₂ ${info.o2}%</span>` : ''}
+      ${info.age ? `<span class="badge">👤 ${info.age}y</span>` : ''}
+    </div>
+    <div class="card-priority">
+      ${priority === 'normal' ? '✅' : priority === 'urgent' ? '⚠️' : '🚨'}
+      ${result.priority} — ${result.confidence}% confidence
+    </div>
+    ${result.summary ? `<div class="ai-summary">${result.summary}</div>` : ''}
+    ${result.recommended_action ? `<div class="ai-summary" style="color:var(--text)">→ ${result.recommended_action}</div>` : ''}
+  `;
+  laneEl.appendChild(card);
+}
+
+function showAnalysis(result) {
+  const box = document.getElementById('analysis-box');
+  const content = document.getElementById('analysis-content');
+  let text = '';
+  if (result.analysis) text += result.analysis;
+  if (result.vitals_concern && result.vitals_concern.length) {
+    text += '\n\n⚠️ Concerning vitals: ' + result.vitals_concern.join(', ');
+  }
+  content.textContent = text;
+  box.classList.add('show');
+}
+
+function updateCounts() {
+  ['normal','urgent','critical'].forEach(k => {
+    document.getElementById('cnt-' + k).textContent = counts[k];
+    document.getElementById('lc-' + k).textContent = counts[k];
+  });
+}
+</script>
+</body>
+</html>

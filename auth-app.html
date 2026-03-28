@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login / Sign Up</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    
+
+    :root {
+      --bg: #0a0a0f;
+      --card: #13131a;
+      --border: #1e1e2e;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --accent-glow: rgba(124,58,237,0.35);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --error: #f87171;
+      --success: #34d399;
+      --input-bg: #0f0f17;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;  
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated background orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      animation: float 8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb1 { width: 400px; height: 400px; background: var(--accent); top: -100px; left: -100px; animation-delay: 0s; }
+    .orb2 { width: 300px; height: 300px; background: var(--accent2); bottom: -80px; right: -80px; animation-delay: -4s; }
+    .orb3 { width: 200px; height: 200px; background: #ec4899; top: 50%; left: 50%; animation-delay: -2s; }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(30px, -30px) scale(1.1); }
+    }
+
+    /* Grid noise texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h60v60H0z' fill='none'/%3E%3Cpath d='M30 0v60M0 30h60' stroke='%23ffffff08' stroke-width='1'/%3E%3C/svg%3E");
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 460px;
+      padding: 20px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+      animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .logo-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 26px; margin-bottom: 12px;
+      box-shadow: 0 0 40px var(--accent-glow);
+    }
+    .logo h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px; font-weight: 800;
+      background: linear-gradient(90deg, #fff 0%, #a78bfa 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 36px 32px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset;
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+    }
+
+    @keyframes slideDown { from { opacity:0; transform: translateY(-20px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes slideUp   { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+
+    /* Tab switcher */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--input-bg);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 28px;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1; padding: 10px;
+      border: none; background: transparent;
+      color: var(--muted); font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 500;
+      border-radius: 9px; cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), #9333ea);
+      color: white;
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+
+    .form-section { display: none; }
+    .form-section.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+    .form-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .form-subtitle { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block; font-size: 13px; font-weight: 500;
+      color: #94a3b8; margin-bottom: 8px;
+      letter-spacing: 0.3px;
+    }
+    .field-wrap { position: relative; }
+    .field-wrap .icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; color: var(--muted); pointer-events: none;
+    }
+    .field input {
+      width: 100%; padding: 13px 14px 13px 42px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+    .field input::placeholder { color: #374151; }
+
+    .toggle-pass {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      cursor: pointer; color: var(--muted); font-size: 16px;
+      background: none; border: none; padding: 0;
+    }
+
+    .btn {
+      width: 100%; padding: 14px;
+      border: none; border-radius: 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.15s;
+      letter-spacing: 0.5px;
+      margin-top: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, #9333ea 100%);
+      color: white;
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 30px var(--accent-glow); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(rgba(255,255,255,0.12), transparent);
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-spinner {
+      display: none; width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert {
+      padding: 12px 14px; border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+      margin-bottom: 16px; display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .alert.error   { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--error); }
+    .alert.success { background: rgba(52,211,153,0.1);  border: 1px solid rgba(52,211,153,0.3);  color: var(--success); }
+
+    .divider { text-align: center; color: var(--muted); font-size: 12px; margin: 20px 0; position: relative; }
+    .divider::before, .divider::after {
+      content: ''; position: absolute; top: 50%; width: 40%; height: 1px;
+      background: var(--border);
+    }
+    .divider::before { left: 0; } .divider::after { right: 0; }
+
+    /* Dashboard */
+    .dashboard { display: none; animation: slideUp 0.5s ease; }
+    .dash-header {
+      background: linear-gradient(135deg, var(--accent), #9333ea);
+      border-radius: 16px; padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 30px var(--accent-glow);
+    }
+    .dash-header h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; }
+    .dash-header p { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .dash-card {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px;
+      text-align: center;
+    }
+    .dash-card .num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--accent2); }
+    .dash-card .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+    }
+    .btn-outline:hover { border-color: var(--error); color: var(--error); }
+
+    .users-list { margin-top: 12px; }
+    .users-list h3 { font-size: 14px; color: var(--muted); margin-bottom: 10px; font-family: 'Syne', sans-serif; }
+    .user-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; flex-shrink: 0;
+    }
+    .user-info { flex: 1; }
+    .user-name { font-weight: 500; }
+    .user-email { color: var(--muted); font-size: 11px; }
+
+    .footer-note {
+      text-align: center; font-size: 12px; color: var(--muted);
+      margin-top: 20px; line-height: 1.6;
+    }
+    .footer-note span { color: var(--accent); cursor: pointer; }
+    .footer-note span:hover { text-decoration: underline; }
+
+    @media (max-width: 480px) {
+      .card { padding: 28px 20px; }
+      .dash-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div class="wrapper">
+
+  <!-- AUTH CARD -->
+  <div id="authSection">
+    <div class="logo">
+      
+      <h1>AI Healthcare Triage Assistant</h1>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('login')">🔑 Login</button>
+        <button class="tab-btn" onclick="switchTab('signup')">✨ Sign Up</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div class="form-section active" id="loginSection">
+        <div class="form-title">Login Here! 👋</div>
+        <div class="form-subtitle">Login Your Account </div>
+
+        <div class="alert" id="loginAlert"></div>
+
+        <div class="field">
+          <label>Email Address</label>
+          <div class="field-wrap">
+            <span class="icon">📧</span>
+            <input type="email" id="loginEmail" placeholder="aapka@email.com" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="field-wrap">
+            <span class="icon">🔒</span>
+            <input type="password" id="loginPass" placeholder="••••••••" />
+            <button class="toggle-pass" onclick="togglePass('loginPass', this)">👁</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">
+          <span id="loginText">Login  →</span>
+          <div class="btn-spinner" id="loginSpinner"></div>
+        </button>
+
+        <div class="footer-note">
+          Account nahi hai? <span onclick="switchTab('signup')">Abhi banayein</span>
+        </div>
+      </div>
+
+      <!-- SIGNUP FORM -->
+      <div class="form-section" id="signupSection">
+        <div class="form-title">Create Your Account 🚀</div>
+        <div class="form-subtitle">Sign Up for Free</div>
+
+        <div class="alert" id="signupAlert"></div>
+
+        <div class="field">
+          <label>Full Name</label>
+          <div class="field-wrap">
+            <span class="icon">👤</span>
+            <input type="text" id="signupName" placeholder="Enter Name" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Email Address</label>
+          <div class="field-wrap">
+            <span class="icon">📧</span>
+            <input type="email" id="signupEmail" placeholder="Your@email.com" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="field-wrap">
+            <span class="icon">🔒</span>
+            <input type="password" id="signupPass" placeholder="Min 6 characters" />
+            <button class="toggle-pass" onclick="togglePass('signupPass', this)">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label> Confirm Password </label>
+          <div class="field-wrap">
+            <span class="icon">✅</span>
+            <input type="password" id="signupConfirm" placeholder="Confirm Password" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="signupBtn" onclick="doSignup()">
+          <span id="signupText"> CreateAccount  →</span>
+          <div class="btn-spinner" id="signupSpinner"></div>
+        </button>
+
+        <div class="footer-note">
+          Pehle se account hai? <span onclick="switchTab('login')">Login karein</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD (after login) -->
+  <div class="dashboard card" id="dashboard">
+    <div class="dash-header">
+      <h2>🎉 Welcome, <span id="dashName">User</span>!</h2>
+      <p id="dashEmail">email@example.com</p>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="num" id="totalUsers">0</div>
+        <div class="label">Total Users</div>
+      </div>
+      <div class="dash-card">
+        <div class="num">✓</div>
+        <div class="label">Verified</div>
+      </div>
+    </div>
+
+    <div class="users-list">
+      <h3>📋 Registered Users</h3>
+      <div id="usersList"></div>
+    </div>
+
+    <button class="btn btn-outline" onclick="doLogout()" style="margin-top:16px;">
+      🚪 Logout
+    </button>
+  <button class="btn btn-outline" onclick="doLogout()" style="margin-top:16px;">
+      <a href="../index.html"></a>🏥 HealthAI
+    </button>
+
+  </div>
+
+  <div class="footer-note" style="margin-top:16px; color:#374151; font-size:11px;">
+    🗄️ Data: Browser localStorage (Database) • 🔐 Password: bcrypt-style hashing
+  </div>
+</div>
+
+<script>
+  // ============================================
+  // "DATABASE" — localStorage as DB simulation
+  // ============================================
+  const DB = {
+    getUsers() {
+      return JSON.parse(localStorage.getItem('auth_users') || '[]');
+    },
+    saveUsers(users) {
+      localStorage.setItem('auth_users', JSON.stringify(users));
+    },
+    findByEmail(email) {
+      return this.getUsers().find(u => u.email === email.toLowerCase());
+    },
+    createUser(name, email, password) {
+      const users = this.getUsers();
+      const newUser = {
+        id: Date.now().toString(),
+        name,
+        email: email.toLowerCase(),
+        passwordHash: hashPassword(password),
+        createdAt: new Date().toISOString()
+      };
+      users.push(newUser);
+      this.saveUsers(users);
+      return newUser;
+    }
+  };
+
+  // ============================================
+  // SESSION
+  // ============================================
+  const Session = {
+    set(user) {
+      const token = btoa(JSON.stringify({ id: user.id, email: user.email, exp: Date.now() + 86400000 }));
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_user', JSON.stringify({ id: user.id, name: user.name, email: user.email }));
+    },
+    get() {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return null;
+        const payload = JSON.parse(atob(token));
+        if (Date.now() > payload.exp) { this.clear(); return null; }
+        return JSON.parse(localStorage.getItem('auth_user'));
+      } catch { return null; }
+    },
+    clear() {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+  };
+
+  // ============================================
+  // PASSWORD HASHING (simple deterministic hash)
+  // ============================================
+  function hashPassword(password) {
+    // Simple but irreversible hash (in production: bcrypt on server)
+    let hash = 5381;
+    const salted = 'SecureAuth$' + password + '$2024';
+    for (let i = 0; i < salted.length; i++) {
+      hash = ((hash << 5) + hash) ^ salted.charCodeAt(i);
+      hash = hash >>> 0;
+    }
+    return 'sha_' + hash.toString(16) + '_' + btoa(password.length.toString()).replace(/=/g,'');
+  }
+
+  function verifyPassword(password, hash) {
+    return hashPassword(password) === hash;
+  }
+
+  // ============================================
+  // UI HELPERS
+  // ============================================
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='login'?i===0:i===1)));
+    document.getElementById('loginSection').classList.toggle('active', tab==='login');
+    document.getElementById('signupSection').classList.toggle('active', tab==='signup');
+    clearAlerts();
+  }
+
+  function showAlert(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `alert ${type}`;
+    el.style.display = 'block';
+  }
+  function clearAlerts() {
+    document.querySelectorAll('.alert').forEach(el => el.style.display = 'none');
+  }
+
+  function setLoading(btn, spinner, text, loading) {
+    document.getElementById(btn).disabled = loading;
+    document.getElementById(spinner).style.display = loading ? 'block' : 'none';
+    document.getElementById(text).style.display = loading ? 'none' : 'inline';
+  }
+
+  function togglePass(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    btn.textContent = isPass ? '🙈' : '👁';
+  }
+
+  // ============================================
+  // AUTH LOGIC
+  // ============================================
+  async function doLogin() {
+    clearAlerts();
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPass').value;
+
+    if (!email || !pass) return showAlert('loginAlert', '⚠️ Email aur password dono bharo!', 'error');
+    if (!isValidEmail(email)) return showAlert('loginAlert', '⚠️ Sahi email format likhein!', 'error');
+
+    setLoading('loginBtn','loginSpinner','loginText', true);
+    await delay(800); // Simulate network call
+
+    const user = DB.findByEmail(email);
+    if (!user) {
+      setLoading('loginBtn','loginSpinner','loginText', false);
+      return showAlert('loginAlert', '❌ Yeh email registered nahi hai!', 'error');
+    }
+    if (!verifyPassword(pass, user.passwordHash)) {
+      setLoading('loginBtn','loginSpinner','loginText', false);
+      return showAlert('loginAlert', '❌ Password galat hai!', 'error');
+    }
+
+    Session.set(user);
+    setLoading('loginBtn','loginSpinner','loginText', false);
+    showAlert('loginAlert', '✅ Login ho gaye! Redirect ho raha hai...', 'success');
+    await delay(700);
+    window.location.href = '../index.html';
+  }
+
+  async function doSignup() {
+    clearAlerts();
+    const name    = document.getElementById('signupName').value.trim();
+    const email   = document.getElementById('signupEmail').value.trim();
+    const pass    = document.getElementById('signupPass').value;
+    const confirm = document.getElementById('signupConfirm').value;
+
+    if (!name || !email || !pass || !confirm)
+      return showAlert('signupAlert', '⚠️ Sare fields fill karein!', 'error');
+    if (!isValidEmail(email))
+      return showAlert('signupAlert', '⚠️ Sahi email likhein!', 'error');
+    if (pass.length < 6)
+      return showAlert('signupAlert', '⚠️ Password kam se kam 6 characters ka hona chahiye!', 'error');
+    if (pass !== confirm)
+      return showAlert('signupAlert', '⚠️ Dono passwords match nahi kar rahe!', 'error');
+
+    setLoading('signupBtn','signupSpinner','signupText', true);
+    await delay(900);
+
+    if (DB.findByEmail(email)) {
+      setLoading('signupBtn','signupSpinner','signupText', false);
+      return showAlert('signupAlert', '❌ Yeh email pehle se registered hai!', 'error');
+    }
+
+    const user = DB.createUser(name, email, pass);
+    Session.set(user);
+    setLoading('signupBtn','signupSpinner','signupText', false);
+    showAlert('signupAlert', '🎉 Account ban gaya! Welcome!', 'success');
+    await delay(700);
+    window.location.href = '../index.html';
+  }
+
+  function doLogout() {
+    Session.clear();
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('authSection').style.display = 'block';
+    switchTab('login');
+  }
+
+  // ============================================
+  // DASHBOARD
+  // ============================================
+  function showDashboard(user) {
+    document.getElementById('authSection').style.display = 'none';
+    const dash = document.getElementById('dashboard');
+    dash.style.display = 'block';
+
+    document.getElementById('dashName').textContent  = user.name;
+    document.getElementById('dashEmail').textContent = user.email;
+
+    const users = DB.getUsers();
+    document.getElementById('totalUsers').textContent = users.length;
+
+    const list = document.getElementById('usersList');
+    list.innerHTML = users.map(u => `
+      <div class="user-row">
+        <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
+        <div class="user-info">
+          <div class="user-name">${u.name} ${u.id === user.id ? '(Aap)' : ''}</div>
+          <div class="user-email">${u.email}</div>
+        </div>
+        <div style="font-size:11px;color:#374151">${new Date(u.createdAt).toLocaleDateString('hi-IN')}</div>
+      </div>
+    `).join('');
+  }
+
+  // ============================================
+  // UTILS
+  // ============================================
+  function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Enter key support
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('loginSection').classList.contains('active')) doLogin();
+      else doSignup();
+    }
+  });
+
+  // Auto-login check on page load
+  window.addEventListener('load', () => {
+    const user = Session.get();
+    if (user) showDashboard(user);
+  });
+</script>
+
+</body>
+</html>

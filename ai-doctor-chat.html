@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Doctor · Healthcare Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --gold: #c9a84c;
+  --gold-bright: #f0c040;
+  --gold-dim: #7a5e1e;
+  --bg: #0d0b07;
+  --bg2: #141008;
+  --bg3: #1c1408;
+  --border: #2a1e08;
+  --border-gold: rgba(201,168,76,0.25);
+  --text: #f0e8d0;
+  --text-dim: #8a7a55;
+  --critical: #ff4444;
+  --urgent: #ff8800;
+  --safe: #44cc88;
+  --white: #fdf8ee;
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* BG texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 0%, rgba(201,168,76,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 80% 100%, rgba(201,168,76,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HEADER ── */
+.header {
+  width: 100%;
+  max-width: 780px;
+  padding: 1.5rem 1.5rem 0;
+  position: relative;
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.brand-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+  flex-shrink: 0;
+}
+
+.brand-text { flex: 1; }
+
+.brand-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 4px;
+  color: var(--gold-bright);
+  line-height: 1;
+}
+
+.brand-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.online-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(68,204,136,0.1);
+  border: 1px solid rgba(68,204,136,0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--safe);
+  box-shadow: 0 0 6px var(--safe);
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.online-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--safe);
+  letter-spacing: 2px;
+}
+
+/* ── CHAT WINDOW ── */
+.chat-window {
+  width: 100%;
+  max-width: 780px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+  padding: 0 1.5rem;
+  min-height: 0;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  scroll-behavior: smooth;
+}
+
+.messages::-webkit-scrollbar { width: 4px; }
+.messages::-webkit-scrollbar-track { background: transparent; }
+.messages::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+
+/* ── MESSAGES ── */
+.msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.msg-row.user { flex-direction: row-reverse; }
+
+/* Avatar */
+.avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border: 2px solid;
+}
+
+.avatar.ai {
+  background: linear-gradient(135deg, #1c1408, #2a1e08);
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 12px rgba(201,168,76,0.2);
+}
+
+.avatar.user {
+  background: linear-gradient(135deg, #1a1a2e, #0f0f1e);
+  border-color: #333366;
+}
+
+/* Bubble */
+.bubble {
+  max-width: 72%;
+  padding: 0.9rem 1.2rem;
+  font-size: 0.88rem;
+  line-height: 1.75;
+  position: relative;
+}
+
+.bubble.ai {
+  background: var(--bg2);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius) var(--radius) var(--radius) 4px;
+  color: var(--text);
+}
+
+.bubble.user {
+  background: linear-gradient(135deg, #1e1e3a, #16162a);
+  border: 1px solid #2a2a4a;
+  border-radius: var(--radius) var(--radius) 4px var(--radius);
+  color: #d0d0f0;
+  text-align: right;
+}
+
+.bubble.ai::before {
+  content: '';
+  position: absolute;
+  left: -6px; bottom: 8px;
+  width: 12px; height: 12px;
+  background: var(--bg2);
+  border-left: 1px solid var(--border-gold);
+  border-bottom: 1px solid var(--border-gold);
+  transform: rotate(45deg);
+  clip-path: polygon(0 100%, 100% 100%, 0 0);
+}
+
+/* AI name label */
+.ai-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  color: var(--gold-dim);
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+/* Advice card inside bubble */
+.advice-card {
+  margin-top: 0.9rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid;
+}
+
+.advice-header {
+  padding: 0.5rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+}
+
+.advice-body {
+  padding: 0.75rem 0.9rem;
+  font-size: 0.78rem;
+  line-height: 1.8;
+  color: var(--text-dim);
+}
+
+.advice-body strong { color: var(--text); }
+
+.advice-body ul {
+  padding-left: 1.2rem;
+  margin-top: 0.4rem;
+}
+
+.advice-body li { margin-bottom: 0.2rem; }
+
+/* Severity colors */
+.sev-critical { color: #ff4444; border-color: #ff4444; background: rgba(255,68,68,0.07); }
+.sev-urgent   { color: #ff8800; border-color: #ff8800; background: rgba(255,136,0,0.07); }
+.sev-moderate { color: #ffdd00; border-color: #ffdd00; background: rgba(255,221,0,0.07); }
+.sev-mild     { color: #44cc88; border-color: #44cc88; background: rgba(68,204,136,0.07); }
+
+/* Typing */
+.typing-row { display: flex; align-items: flex-end; gap: 0.75rem; }
+
+.typing-bubble {
+  background: var(--bg2);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius) var(--radius) var(--radius) 4px;
+  padding: 0.9rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.typing-bubble span {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: bounce 1.2s infinite;
+  opacity: 0.5;
+}
+.typing-bubble span:nth-child(2) { animation-delay: 0.2s; }
+.typing-bubble span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%,80%,100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-7px); opacity: 1; }
+}
+
+/* Quick reply chips */
+.quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem 0 0.5rem;
+  margin-left: 50px;
+}
+
+.qr-chip {
+  background: transparent;
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qr-chip:hover {
+  background: var(--gold-dim);
+  color: var(--bg);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(201,168,76,0.2);
+}
+
+/* ── INPUT BAR ── */
+.input-bar {
+  padding: 1rem 0 1.5rem;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(0deg, var(--bg) 80%, transparent);
+}
+
+.input-container {
+  background: var(--bg2);
+  border: 1px solid var(--border-gold);
+  border-radius: 24px;
+  display: flex;
+  align-items: flex-end;
+  padding: 0.6rem 0.6rem 0.6rem 1.25rem;
+  gap: 0.75rem;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.input-container:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.1), 0 8px 32px rgba(0,0,0,0.4);
+}
+
+#userInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: none;
+  min-height: 26px;
+  max-height: 140px;
+  padding: 4px 0;
+}
+
+#userInput::placeholder { color: var(--text-dim); }
+
+.send-btn {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.send-btn:hover {
+  background: var(--gold-bright);
+  transform: scale(1.08);
+  box-shadow: 0 0 20px rgba(201,168,76,0.4);
+}
+
+.send-btn:disabled {
+  background: var(--gold-dim);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.send-btn svg { width: 18px; height: 18px; color: #0d0b07; }
+
+.disclaimer-bar {
+  text-align: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem;
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+  margin-top: 0.6rem;
+}
+
+/* ── LANGUAGE TOGGLE ── */
+.lang-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  justify-content: flex-end;
+}
+
+.lang-btn {
+  background: transparent;
+  border: 1px solid var(--border-gold);
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lang-btn.active, .lang-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(201,168,76,0.08);
+}
+
+/* Scrollbar spacer */
+.scroll-pad { height: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-icon">🏥</div>
+    <div class="brand-text">
+      <div class="brand-name">AI Doctor Assistant</div>
+      <div class="brand-sub">Healthcare Triage · Module 07 · Powered by Claude AI</div>
+    </div>
+    <div class="online-badge">
+      <div class="dot"></div>
+      <span class="online-text">ONLINE</span>
+    </div>
+  </div>
+
+  <div class="lang-row">
+    <button class="lang-btn active" id="btnEN" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btnHI" onclick="setLang('hi')">हिंदी</button>
+  </div>
+</div>
+
+<div class="chat-window">
+  <div class="messages" id="messages"></div>
+
+  <div class="input-bar">
+    <div class="input-container">
+      <textarea id="userInput" rows="1" placeholder="Apne symptoms batayein... (e.g. bukhar hai, sar dard ho raha hai)" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+    <div class="disclaimer-bar">⚠ AI advice is for guidance only · Emergency mein 108 call karein · Final decision doctor ka hoga</div>
+  </div>
+</div>
+
+<script>
+let lang = 'hi'; // default Hinglish/Hindi friendly
+let history = [];
+let firstMessage = true;
+
+const SYSTEM = {
+  en: `You are a warm, empathetic AI doctor assistant helping patients understand their health concerns.
+
+Your role:
+- Talk to patients in a friendly, easy-to-understand way (avoid heavy medical jargon)
+- Ask relevant follow-up questions to understand symptoms better
+- Give practical health advice based on symptoms
+- Clearly indicate urgency level at the end of every advice message
+
+URGENCY LEVELS (always add at the end):
+🔴 CRITICAL — Call ambulance (108) immediately, life-threatening
+🟠 URGENT — Visit hospital/doctor today, don't delay
+🟡 MODERATE — See a doctor within 1-2 days
+🟢 MILD — Home care is sufficient, monitor symptoms
+
+FORMAT your advice responses like this:
+**What's likely happening:** (simple explanation)
+**What you should do now:**
+- Bullet point 1
+- Bullet point 2
+**Home remedies / immediate relief:** (if applicable)
+**When to go to hospital immediately:** (red flag signs)
+URGENCY: [level with emoji]
+
+IMPORTANT:
+- Always be compassionate and reassuring
+- Never scare the patient unnecessarily  
+- Always recommend professional medical help for anything beyond mild symptoms
+- If patient describes emergency signs (chest pain, difficulty breathing, loss of consciousness, stroke signs), IMMEDIATELY tell them to call 108
+- Keep responses concise but complete`,
+
+  hi: `Aap ek friendly, empathetic AI doctor assistant hain jo patients ki health concerns samajhne mein madad karte hain.
+
+Aapka role:
+- Patients se simple, samajh aane wali Hindi/Hinglish mein baat karein
+- Symptoms samajhne ke liye relevant sawaal poochhein
+- Symptoms ke basis pe practical health advice dein
+- Har advice message ke end mein urgency level clearly batayein
+
+URGENCY LEVELS (har advice ke end mein zaroor likkhein):
+🔴 CRITICAL — Turant 108 call karein, jaan ka khatre wali situation
+🟠 URGENT — Aaj hi doctor/hospital jayein, der mat karein
+🟡 MODERATE — 1-2 din mein doctor se milein
+🟢 MILD — Ghar pe dekhbhal kaafi hai, symptoms monitor karein
+
+APNI ADVICE RESPONSES IS FORMAT MEIN DEIN:
+**Kya ho raha hai aapko:** (simple explanation)
+**Abhi kya karein:**
+- Point 1
+- Point 2
+**Ghar pe rahat ke liye:** (agar applicable ho)
+**Kab turant hospital jayein:** (warning signs)
+URGENCY: [level with emoji]
+
+ZAROORI:
+- Hamesha caring aur reassuring rehein
+- Patient ko unnecessarily darein nahi
+- Mild se zyada kisi bhi symptom ke liye professional help recommend zaroor karein
+- Agar patient emergency signs bataye (seene mein dard, saans lena mushkil, behoshi, stroke symptoms) toh turant 108 call karne ko bolein
+- Responses concise aur complete rakhein
+- Hinglish mein jawab dein (Hindi + English mix, jaise log normally bolte hain)`
+};
+
+const WELCOME = {
+  en: {
+    text: "Hello! 👋 I'm your AI Health Assistant. I'm here to help you understand your symptoms and guide you on what to do next.\n\nPlease tell me — **what are you feeling today?** You can describe your symptoms in detail.",
+    chips: ["I have fever 🤒", "Chest pain 💔", "Headache 🤕", "Stomach ache 🤢", "Cough & cold 🤧", "I feel weak / tired 😴"]
+  },
+  hi: {
+    text: "Namaste! 👋 Main aapka AI Health Assistant hoon. Main aapke symptoms samajhne aur aage kya karna chahiye yeh guide karne ke liye yahan hoon.\n\n**Aaj aap kaisa feel kar rahe hain?** Apni takleef detail mein batayein.",
+    chips: ["Bukhar hai 🤒", "Seene mein dard 💔", "Sar dard 🤕", "Pet dard 🤢", "Khansi/Sardi 🤧", "Kamzori/Thakaan 😴"]
+  }
+};
+
+function setLang(l) {
+  lang = l;
+  document.getElementById('btnEN').classList.toggle('active', l === 'en');
+  document.getElementById('btnHI').classList.toggle('active', l === 'hi');
+  const inp = document.getElementById('userInput');
+  inp.placeholder = l === 'hi'
+    ? 'Apne symptoms batayein... (e.g. bukhar hai, sar dard ho raha hai)'
+    : 'Describe your symptoms... (e.g. I have fever, headache since 2 days)';
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, m => `<ul>${m}</ul>`)
+    .replace(/\n{2,}/g, '</p><p style="margin-top:0.5rem">')
+    .replace(/\n/g, '<br>');
+}
+
+function getSeverityClass(text) {
+  const up = text.toUpperCase();
+  if (up.includes('CRITICAL') || up.includes('🔴')) return 'sev-critical';
+  if (up.includes('URGENT') || up.includes('🟠')) return 'sev-urgent';
+  if (up.includes('MODERATE') || up.includes('🟡')) return 'sev-moderate';
+  return 'sev-mild';
+}
+
+function getSeverityLabel(text) {
+  const up = text.toUpperCase();
+  if (up.includes('CRITICAL') || up.includes('🔴')) return { emoji: '🔴', label: lang === 'hi' ? 'CRITICAL — Turant 108 Call Karein' : 'CRITICAL — Call 108 Immediately' };
+  if (up.includes('URGENT') || up.includes('🟠')) return { emoji: '🟠', label: lang === 'hi' ? 'URGENT — Aaj Doctor Jayein' : 'URGENT — See Doctor Today' };
+  if (up.includes('MODERATE') || up.includes('🟡')) return { emoji: '🟡', label: lang === 'hi' ? 'MODERATE — 1-2 Din Mein Doctor' : 'MODERATE — See Doctor in 1-2 Days' };
+  return { emoji: '🟢', label: lang === 'hi' ? 'MILD — Ghar Pe Rest Karein' : 'MILD — Home Care Sufficient' };
+}
+
+function appendUserMsg(text) {
+  const msgs = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `
+    <div class="avatar user">👤</div>
+    <div class="bubble user">${escHtml(text)}</div>`;
+  msgs.appendChild(row);
+  scrollBottom();
+}
+
+function appendAIMsg(text, chips) {
+  const msgs = document.getElementById('messages');
+
+  const hasAdvice = text.includes('URGENCY') || text.includes('🔴') || text.includes('🟠') || text.includes('🟡') || text.includes('🟢');
+
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+
+  let cardHtml = '';
+  if (hasAdvice) {
+    const sevClass = getSeverityClass(text);
+    const sev = getSeverityLabel(text);
+    // remove URGENCY line from main text
+    const cleanText = text.replace(/URGENCY:.*$/im, '').trim();
+    cardHtml = `
+      <div class="advice-card ${sevClass}">
+        <div class="advice-header ${sevClass}">
+          <span>${sev.emoji}</span> ${sev.label}
+        </div>
+      </div>`;
+    row.innerHTML = `
+      <div class="avatar ai">🤖</div>
+      <div class="bubble ai">
+        <div class="ai-label">AI DOCTOR</div>
+        <p>${formatText(cleanText)}</p>
+        ${cardHtml}
+      </div>`;
+  } else {
+    row.innerHTML = `
+      <div class="avatar ai">🤖</div>
+      <div class="bubble ai">
+        <div class="ai-label">AI DOCTOR</div>
+        <p>${formatText(text)}</p>
+      </div>`;
+  }
+
+  msgs.appendChild(row);
+
+  if (chips && chips.length) {
+    const chipsRow = document.createElement('div');
+    chipsRow.className = 'quick-replies';
+    chips.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'qr-chip';
+      btn.textContent = c;
+      btn.onclick = () => { document.getElementById('userInput').value = c; sendMessage(); };
+      chipsRow.appendChild(btn);
+    });
+    msgs.appendChild(chipsRow);
+  }
+
+  const pad = document.createElement('div');
+  pad.className = 'scroll-pad';
+  msgs.appendChild(pad);
+
+  scrollBottom();
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = 'typing-row';
+  row.id = 'typing';
+  row.innerHTML = `
+    <div class="avatar ai">🤖</div>
+    <div class="typing-bubble"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(row);
+  scrollBottom();
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+function scrollBottom() {
+  const msgs = document.getElementById('messages');
+  setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 50);
+}
+
+async function sendMessage() {
+  const inp = document.getElementById('userInput');
+  const btn = document.getElementById('sendBtn');
+  const text = inp.value.trim();
+  if (!text) return;
+
+  inp.value = '';
+  inp.style.height = 'auto';
+  btn.disabled = true;
+
+  appendUserMsg(text);
+  history.push({ role: 'user', content: text });
+
+  showTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM[lang],
+        messages: history
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.content?.map(b => b.text || '').join('') || 'Sorry, kuch problem ho gayi. Dobara try karein.';
+
+    history.push({ role: 'assistant', content: reply });
+    removeTyping();
+
+    // Generate contextual follow-up chips
+    const followUps = getFollowUpChips(reply);
+    appendAIMsg(reply, followUps);
+
+  } catch(err) {
+    removeTyping();
+    appendAIMsg(lang === 'hi'
+      ? 'Maafi chahta hoon, connection mein dikkat aa gayi. Dobara try karein. Emergency mein 108 call karein.'
+      : 'Sorry, connection issue occurred. Please try again. In emergency, call 108.');
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  inp.focus();
+}
+
+function getFollowUpChips(replyText) {
+  const up = replyText.toUpperCase();
+  const chips = [];
+  if (lang === 'hi') {
+    if (up.includes('BUKHAR') || up.includes('FEVER') || up.includes('TEMPERATURE')) {
+      chips.push('Kitne din se hai?', 'Temperature kitna hai?', 'Koi aur symptoms?');
+    } else if (up.includes('DARD') || up.includes('PAIN')) {
+      chips.push('Kitne time se?', 'Dard kitna zyada hai?', 'Koi dawai li?');
+    } else if (up.includes('KHANSI') || up.includes('COUGH') || up.includes('COLD')) {
+      chips.push('Balgam aa raha hai?', 'Saans lene mein takleef?', 'Bukhar bhi hai?');
+    } else {
+      chips.push('Aur kuch symptoms?', 'Koi dawai le raha hoon', 'Doctor kab milun?');
+    }
+  } else {
+    if (up.includes('FEVER') || up.includes('TEMPERATURE')) {
+      chips.push('Since how many days?', 'What is the temperature?', 'Any other symptoms?');
+    } else if (up.includes('PAIN')) {
+      chips.push('How long?', 'Scale 1-10?', 'Any medication taken?');
+    } else {
+      chips.push('Any other symptoms?', 'I have more questions', 'When to see doctor?');
+    }
+  }
+  return chips;
+}
+
+// ── INIT ──
+window.onload = () => {
+  const welcome = WELCOME[lang];
+  setTimeout(() => appendAIMsg(welcome.text, welcome.chips), 400);
+};
+</script>
+</body>
+</html>
