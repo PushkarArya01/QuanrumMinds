@@ -56,7 +56,7 @@ body {
     padding: 20px;
 
     background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
-                url('./image/hero_section.jpeg') center/cover no-repeat;
+                url('/hero_section.jpeg') center/cover no-repeat;
 
     color: white;
 }
