@@ -1,10 +1,3 @@
-// Navbar toggle
-const menuToggle = document.getElementById("menuToggle");
-const navLinks = document.getElementById("navLinks");
-
-menuToggle.addEventListener("click", () => {
-    navLinks.classList.toggle("active");
-});
 
 // Analyze function
 function analyze() {
@@ -86,3 +79,11 @@ function startVoice() {
 function openCamera() {
     alert("Camera feature coming soon!");
 }
+document.addEventListener("DOMContentLoaded", () => {
+    const toggle = document.getElementById("menu-toggle");
+    const navLinks = document.getElementById("nav-links");
+
+    toggle.addEventListener("click", () => {
+        navLinks.classList.toggle("active");
+    });
+});
